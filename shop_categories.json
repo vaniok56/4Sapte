@@ -1,0 +1,166 @@
+{
+  "shop_categories": [
+    {
+      "category": "Electronics",
+      "subcategories": [
+        {
+          "name": "Smartphones & Accessories",
+          "attributes": [
+            "Brand",
+            "Model",
+            "Operating System",
+            "Screen Size",
+            "Storage Capacity",
+            "RAM",
+            "Camera Specs",
+            "Battery Life",
+            "Connectivity (5G, Wi-Fi)",
+            "Color"
+          ]
+        },
+        {
+          "name": "Computers & Laptops",
+          "attributes": [
+            "Brand",
+            "Model",
+            "Processor",
+            "RAM",
+            "Storage Type (SSD/HDD)",
+            "Screen Size",
+            "Graphics Card",
+            "Operating System",
+            "Weight",
+            "Battery Life"
+          ]
+        },
+        {
+          "name": "Gaming",
+          "attributes": [
+            "Platform (PC, Console)",
+            "Genre",
+            "ESRB Rating",
+            "Multiplayer",
+            "Controller Type",
+            "Headset Features",
+            "Monitor Refresh Rate",
+            "Resolution"
+          ]
+        },
+        {
+          "name": "Cameras & Drones",
+          "attributes": [
+            "Brand",
+            "Model",
+            "Sensor Size",
+            "Megapixels",
+            "Lens Mount",
+            "Video Resolution",
+            "Flight Time (Drones)",
+            "Range (Drones)",
+            "Gimbal Type"
+          ]
+        },
+        {
+          "name": "Audio & Video",
+          "attributes": [
+            "Product Type (Headphones, Speakers, TV)",
+            "Brand",
+            "Model",
+            "Connectivity (Bluetooth, Wi-Fi)",
+            "Sound Quality (Hz, dB)",
+            "Wattage",
+            "Screen Resolution (TV)",
+            "Smart Features"
+          ]
+        }
+      ]
+    },
+    {
+      "category": "Books & Media",
+      "subcategories": [
+        {
+          "name": "Fiction",
+          "attributes": [
+            "Author",
+            "Genre",
+            "Format (Hardcover, Paperback)",
+            "Page Count",
+            "Series"
+          ]
+        },
+        {
+          "name": "Non-Fiction",
+          "attributes": [
+            "Author",
+            "Topic",
+            "Format (Hardcover, Paperback)",
+            "Page Count"
+          ]
+        },
+        {
+          "name": "Children's Books",
+          "attributes": [
+            "Author",
+            "Age Range",
+            "Reading Level",
+            "Format",
+            "Series"
+          ]
+        },
+        {
+          "name": "Movies & TV Shows",
+          "attributes": [
+            "Genre",
+            "Format (DVD, Blu-ray)",
+            "Run Time",
+            "Rating",
+            "Actors"
+          ]
+        },
+        {
+          "name": "Music",
+          "attributes": [
+            "Artist",
+            "Genre",
+            "Format (Vinyl, CD)",
+            "Release Year",
+            "Album Name"
+          ]
+        }
+      ]
+    },
+    {
+      "category": "Houses & Apartments",
+      "subcategories": [
+        {
+          "name": "Houses",
+          "attributes": [
+            "Location",
+            "Price",
+            "Number of Bedrooms",
+            "Number of Bathrooms",
+            "Square Footage",
+            "Lot Size",
+            "Year Built",
+            "Property Type",
+            "Features"
+          ]
+        },
+        {
+          "name": "Apartments",
+          "attributes": [
+            "Location",
+            "Price",
+            "Number of Bedrooms",
+            "Number of Bathrooms",
+            "Square Footage",
+            "Floor Level",
+            "Year Built",
+            "Amenities",
+            "Lease Term"
+          ]
+        }
+      ]
+    }
+  ]
+}

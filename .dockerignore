@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+bot.log
+
+# Database files (for local development)
+test_*.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+
+# Scripts
+start_bot.sh
+test_bot.py
+
+# Old files
+script_old.py

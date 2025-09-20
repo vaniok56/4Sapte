@@ -1,0 +1,17 @@
+#system
+.DS_Store
+__pycache__
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+#environment
+.env
+.ini
+.session
+.venv/
+venv/
+env/
