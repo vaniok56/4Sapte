@@ -6,10 +6,9 @@ import configparser # Library for reading from a configuration file, # pip insta
 import datetime # Library that we will need to get the day and time, # pip install datetime
 import pytz
 import logging
-import asyncio
 
 # Import our custom modules
-from database import Database
+from json_storage import JSONStorage
 from deepseek_api import DeepSeekAPI
 from mock_deepseek_api import MockDeepSeekAPI
 from session_manager import SessionManager
@@ -35,13 +34,12 @@ BOT_TOKEN = config.get('default','BOT_TOKEN') # get the bot token
 
 DEEPSEE_API_KEY = config.get('default','DEEPSEE_API_KEY') # get the Deepsee API key
 DEEPSEE_API_URL = config.get('default','DEEPSEE_API_URL') # get the Deepsee API URL
-model_deepseek = "deepseek/deepseek-chat-v3.1:free"
+model_deepseek = config.get('default','model_deepseek') # get the Deepsee model
 
 moldova_tz = pytz.timezone('Europe/Chisinau')
-week_day = int((datetime.datetime.now(moldova_tz)).weekday())
 
 # Initialize components
-database = Database()
+storage = JSONStorage()
 
 # Try to initialize DeepSeek API, fall back to mock if it fails
 try:
@@ -52,8 +50,8 @@ except Exception as e:
     logging.info("🔧 Falling back to Mock API for testing")
     deepseek_api = MockDeepSeekAPI(DEEPSEE_API_KEY, DEEPSEE_API_URL.strip('"'), model_deepseek)
 
-session_manager = SessionManager(database)
-bot_handlers = BotHandlers(database, deepseek_api, session_manager)
+session_manager = SessionManager()
+bot_handlers = BotHandlers(storage, deepseek_api, session_manager)
 
 # Create the client and the session called session_master. We start the session as the Bot (using bot_token)
 client = TelegramClient('sessions/session_master', api_id, api_hash).start(bot_token=BOT_TOKEN)
@@ -86,7 +84,7 @@ Hello {username}! Welcome to the second-hand marketplace bot.
 3. Enter product name/model
 4. AI will extract product details automatically
 5. Confirm details and set your price
-6. Listing gets saved to the database!
+6. Listing gets saved to JSON files!
 
 Ready to start selling? Use /plaseaza_anunt to begin! 🚀
 """
@@ -142,26 +140,16 @@ async def time(event):
     text = f"📅 Current time: {datetime.datetime.now(moldova_tz).strftime('%Y-%m-%d %H:%M:%S %Z')}"
     await client.send_message(SENDER, text, parse_mode="Markdown")
 
-# Global error handler
-@client.on(events.NewMessage)
-async def global_error_handler(event):
-    try:
-        # This will be called after other handlers, so we only handle unhandled messages
-        pass
-    except Exception as e:
-        logging.error(f"Global error handler: {e}")
-        await event.respond("❌ An unexpected error occurred. Please try again or contact support.")
-
 ### MAIN
 if __name__ == '__main__':
     logging.info("🤖 Second-Hand Market Bot Starting...")
-    logging.info(f"📊 Database initialized: {database.db_path}")
+    logging.info(f"📊 JSON Storage initialized: {storage.users_file} and {storage.listings_dir}/")
     
     # Check which API is being used
     api_type = "Mock API (Testing Mode)" if isinstance(deepseek_api, MockDeepSeekAPI) else "Real DeepSeek API"
     logging.info(f"🤖 AI Service: {api_type} - Model: {deepseek_api.model}")
     
-    logging.info(f"📋 Categories loaded: {len(session_manager.get_categories_list())} categories")
+    logging.info(f"📋 Categories loaded: {len(session_manager.get_categories())} categories")
     
     print("🚀 Second-Hand Market Bot Started!")
     print("📋 Available commands:")
@@ -173,7 +161,7 @@ if __name__ == '__main__':
     print("   /help - Show help")
     print("   /time - Current time")
     print(f"\n🤖 AI Service: {api_type}")
-    print("💾 Database ready!")
+    print("💾 JSON Storage ready!")
     print("🔗 Bot running... Press Ctrl+C to stop.")
     
     try:

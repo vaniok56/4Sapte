@@ -1,54 +1,46 @@
 import json
 import logging
 from enum import Enum
-from typing import Dict, Optional, List
-from database import Database
+from typing import Dict, List, Optional, Any
+from json_storage import JSONStorage
 
 class ConversationState(Enum):
-    """Enum for conversation states during the listing process"""
     IDLE = "idle"
     CATEGORY_SELECTION = "category_selection"
     SUBCATEGORY_SELECTION = "subcategory_selection"
     PRODUCT_INPUT = "product_input"
     PROCESSING_PRODUCT = "processing_product"
     CONFIRMATION = "confirmation"
+    DESCRIPTION_INPUT = "description_input"
     PRICE_INPUT = "price_input"
     COMPLETED = "completed"
 
 class SessionManager:
-    def __init__(self, database: Database):
-        self.db = database
-        self.categories_cache = None
+    def __init__(self, categories_file="shop_categories.json"):
+        self.storage = JSONStorage()
+        self.categories = self._load_categories(categories_file)
     
-    def load_categories(self, categories_file: str = "shop_categories.json") -> Dict:
-        """Load categories from JSON file"""
-        if self.categories_cache is None:
-            try:
-                with open(categories_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    self.categories_cache = data.get('shop_categories', [])
-                    logging.info(f"Loaded {len(self.categories_cache)} categories")
-            except Exception as e:
-                logging.error(f"Error loading categories: {e}")
-                self.categories_cache = []
-        
-        return self.categories_cache
+    def _load_categories(self, categories_file: str) -> Dict:
+        try:
+            with open(categories_file, 'r') as f:
+                data = json.load(f)
+            logging.info(f"Loaded {len(data.get('shop_categories', []))} categories")
+            return data
+        except Exception as e:
+            logging.error(f"Error loading categories: {e}")
+            return {"shop_categories": []}
     
-    def get_categories_list(self) -> List[Dict]:
-        """Get list of all categories"""
-        categories = self.load_categories()
-        return [{"name": cat["category"], "subcategories": cat["subcategories"]} for cat in categories]
+    def get_categories(self) -> List[Dict]:
+        return self.categories.get("shop_categories", [])
     
     def get_category_by_name(self, category_name: str) -> Optional[Dict]:
-        """Get category details by name"""
-        categories = self.load_categories()
+        categories = self.get_categories()
         for cat in categories:
             if cat["category"].lower() == category_name.lower():
                 return cat
         return None
     
     def get_subcategory_by_name(self, category_name: str, subcategory_name: str) -> Optional[Dict]:
-        """Get subcategory details by name"""
         category = self.get_category_by_name(category_name)
         if category:
             for subcat in category["subcategories"]:
@@ -57,155 +49,151 @@ class SessionManager:
         return None
     
     def get_expected_attributes(self, category_name: str, subcategory_name: str) -> List[str]:
-        """Get expected attributes for a category/subcategory combination"""
         subcategory = self.get_subcategory_by_name(category_name, subcategory_name)
         if subcategory:
             return subcategory.get("attributes", [])
         return []
     
-    def start_listing_session(self, user_id: int) -> bool:
-        """Start a new listing session for a user"""
+    def start_new_session(self, user_id: int) -> bool:
         try:
-            # Clear any existing session
-            self.db.clear_user_session(user_id)
-            
-            # Create new session
-            self.db.update_user_session(
+            self.storage.update_user_session(
                 user_id=user_id,
                 state=ConversationState.CATEGORY_SELECTION.value
             )
-            
-            # Log the action
-            self.db.log_user_action(user_id, "listing_started")
-            
-            logging.info(f"Started listing session for user {user_id}")
+            self.storage.log_user_action(user_id, "session_started", {})
+            logging.info(f"Started new session for user {user_id}")
             return True
-            
         except Exception as e:
-            logging.error(f"Error starting listing session: {e}")
+            logging.error(f"Error starting session: {e}")
             return False
     
+    def get_session_state(self, user_id: int) -> Optional[Dict]:
+        return self.storage.get_user_session(user_id)
+    
     def update_session_state(self, user_id: int, state: ConversationState, **kwargs) -> bool:
-        """Update user session state"""
+        """Update user session state with additional data"""
         try:
+            # Prepare update data
             update_data = {"state": state.value}
             update_data.update(kwargs)
             
-            self.db.update_user_session(user_id=user_id, **update_data)
+            self.storage.update_user_session(user_id=user_id, **update_data)
             
             logging.info(f"Updated session state for user {user_id} to {state.value}")
             return True
-            
         except Exception as e:
             logging.error(f"Error updating session state: {e}")
             return False
     
-    def get_session_state(self, user_id: int) -> Optional[Dict]:
-        """Get current session state for a user"""
-        return self.db.get_user_session(user_id)
-    
     def set_category(self, user_id: int, category: str) -> bool:
-        """Set selected category for user session"""
         try:
-            # Validate category exists
             if not self.get_category_by_name(category):
                 logging.error(f"Invalid category: {category}")
                 return False
             
-            self.db.update_user_session(
+            self.storage.update_user_session(
                 user_id=user_id,
                 category=category,
                 state=ConversationState.SUBCATEGORY_SELECTION.value
             )
-            
-            # Log the action
-            self.db.log_user_action(user_id, "category_selected", {"category": category})
-            
+            self.storage.log_user_action(user_id, "category_selected", {"category": category})
             logging.info(f"Set category {category} for user {user_id}")
             return True
-            
         except Exception as e:
             logging.error(f"Error setting category: {e}")
             return False
     
     def set_subcategory(self, user_id: int, subcategory: str) -> bool:
-        """Set selected subcategory for user session"""
         try:
             session = self.get_session_state(user_id)
             if not session or not session.get('category'):
                 logging.error(f"No category selected for user {user_id}")
                 return False
             
-            # Validate subcategory exists for the selected category
             if not self.get_subcategory_by_name(session['category'], subcategory):
-                logging.error(f"Invalid subcategory {subcategory} for category {session['category']}")
+                logging.error(f"Invalid subcategory {subcategory}")
                 return False
             
-            self.db.update_user_session(
+            self.storage.update_user_session(
                 user_id=user_id,
                 subcategory=subcategory,
                 state=ConversationState.PRODUCT_INPUT.value
             )
-            
-            # Log the action
-            self.db.log_user_action(user_id, "subcategory_selected", {
+            self.storage.log_user_action(user_id, "subcategory_selected", {
                 "category": session['category'],
                 "subcategory": subcategory
             })
-            
             logging.info(f"Set subcategory {subcategory} for user {user_id}")
             return True
-            
         except Exception as e:
             logging.error(f"Error setting subcategory: {e}")
             return False
     
     def set_product_name(self, user_id: int, product_name: str) -> bool:
-        """Set product name for user session"""
         try:
-            self.db.update_user_session(
+            self.storage.update_user_session(
                 user_id=user_id,
                 product_name=product_name,
                 state=ConversationState.PROCESSING_PRODUCT.value
             )
-            
-            # Log the action
-            self.db.log_user_action(user_id, "product_name_entered", {
+            self.storage.log_user_action(user_id, "product_name_entered", {
                 "product_name": product_name
             })
-            
-            logging.info(f"Set product name '{product_name}' for user {user_id}")
+            logging.info(f"Set product name for user {user_id}")
             return True
-            
         except Exception as e:
             logging.error(f"Error setting product name: {e}")
             return False
     
     def set_extracted_data(self, user_id: int, extracted_data: Dict) -> bool:
-        """Set extracted product data for user session"""
         try:
-            self.db.update_user_session(
+            self.storage.update_user_session(
                 user_id=user_id,
                 extracted_data=extracted_data,
                 state=ConversationState.CONFIRMATION.value
             )
-            
-            # Log the action
-            self.db.log_user_action(user_id, "product_data_extracted", {
+            self.storage.log_user_action(user_id, "product_data_extracted", {
                 "success": extracted_data.get('success', False),
                 "confidence": extracted_data.get('confidence', 0),
                 "attributes_count": len(extracted_data.get('attributes', {}))
             })
-            
             logging.info(f"Set extracted data for user {user_id}")
             return True
-            
         except Exception as e:
             logging.error(f"Error setting extracted data: {e}")
             return False
     
+    def set_description(self, user_id: int, description: str) -> bool:
+        """Set user-provided description for the listing"""
+        try:
+            session = self.get_session_state(user_id)
+            if not session:
+                logging.error(f"No session found for user {user_id}")
+                return False
+            
+            # Update the extracted data to include the manual description
+            extracted_data = session.get('extracted_data', {})
+            if 'listing' not in extracted_data:
+                extracted_data['listing'] = {}
+            extracted_data['listing']['description'] = description
+            
+            self.storage.update_user_session(
+                user_id=user_id,
+                extracted_data=extracted_data,
+                state=ConversationState.PRICE_INPUT.value
+            )
+            
+            self.storage.log_user_action(user_id, "description_entered", {
+                "description_length": len(description)
+            })
+            
+            logging.info(f"Set description for user {user_id}")
+            return True
+        except Exception as e:
+            logging.error(f"Error setting description: {e}")
+            return False
+    
     def complete_listing(self, user_id: int, username: str, price: float) -> Optional[int]:
-        """Complete the listing and save to database"""
         try:
             session = self.get_session_state(user_id)
             if not session:
@@ -217,58 +205,52 @@ class SessionManager:
                 logging.error(f"No extracted data found for user {user_id}")
                 return None
             
-            # Save product to database
-            product_id = self.db.save_product(
+            product_id = self.storage.save_product(
                 user_id=user_id,
                 username=username,
-                category=session['category'],
-                subcategory=session['subcategory'],
-                product_name=session['product_name'],
+                category=extracted_data.get('category', session.get('category', 'Unknown')),
+                subcategory=extracted_data.get('subcategory', session.get('subcategory', 'Unknown')),
+                product_name=extracted_data.get('product_name', session.get('product_name', 'Unknown')),
                 attributes=extracted_data.get('attributes', {}),
                 price=price
             )
             
             if product_id:
-                # Clear the session
-                self.db.clear_user_session(user_id)
-                
-                # Log completion
-                self.db.log_user_action(user_id, "listing_completed", {
+                self.storage.clear_user_session(user_id)
+                self.storage.log_user_action(user_id, "listing_completed", {
                     "product_id": product_id,
-                    "category": session['category'],
-                    "subcategory": session['subcategory'],
-                    "product_name": session['product_name'],
+                    "category": extracted_data.get('category', 'Unknown'),
                     "price": price
                 })
-                
                 logging.info(f"Completed listing for user {user_id}, product ID: {product_id}")
                 return product_id
             
             return None
-            
         except Exception as e:
             logging.error(f"Error completing listing: {e}")
             return None
     
     def cancel_listing(self, user_id: int) -> bool:
-        """Cancel current listing session"""
         try:
             session = self.get_session_state(user_id)
             if session:
-                self.db.log_user_action(user_id, "listing_cancelled", {
+                self.storage.log_user_action(user_id, "listing_cancelled", {
                     "state": session.get('state'),
                     "category": session.get('category'),
                     "subcategory": session.get('subcategory'),
                     "product_name": session.get('product_name')
                 })
             
-            self.db.clear_user_session(user_id)
+            self.storage.clear_user_session(user_id)
             logging.info(f"Cancelled listing for user {user_id}")
             return True
-            
         except Exception as e:
             logging.error(f"Error cancelling listing: {e}")
             return False
+    
+    def is_session_active(self, user_id: int) -> bool:
+        session = self.get_session_state(user_id)
+        return session is not None and session.get('state') != ConversationState.IDLE.value
     
     def get_session_summary(self, user_id: int) -> Optional[str]:
         """Get a human-readable summary of the current session"""
@@ -295,8 +277,12 @@ class SessionManager:
             summary += f"🎯 Data Confidence: {confidence * 100:.0f}%\n"
         
         return summary.strip()
-    
-    def is_session_active(self, user_id: int) -> bool:
-        """Check if user has an active listing session"""
-        session = self.get_session_state(user_id)
-        return session is not None and session.get('state') != ConversationState.IDLE.value
+
+    def log_user_action(self, user_id: int, action: str, details: Dict) -> bool:
+        """Log user action - delegates to storage"""
+        try:
+            self.storage.log_user_action(user_id, action, details)
+            return True
+        except Exception as e:
+            logging.error(f"Error logging user action: {e}")
+            return False

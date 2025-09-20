@@ -1,3 +1,7 @@
 services:
-  telbot:
+  patrudesapte:
     image: patrudesapte:latest
+    volumes:
+      - ./users.json:/users.json
+      - ./listings/:/listings/
+      - ./sessions/:/sessions/

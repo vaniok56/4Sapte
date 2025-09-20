@@ -12,3 +12,4 @@ api_hash = your_telegram_api_hash_here
 ; Get API key from https://openrouter.ai/
 DEEPSEE_API_KEY = your_openrouter_api_key_here
 DEEPSEE_API_URL = "https://openrouter.ai/api/v1/chat/completions"
+model_deepseek = "deepseek/deepseek-chat-v3.1:free"

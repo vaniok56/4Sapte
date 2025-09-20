@@ -39,6 +39,7 @@ bot.log
 # Session files
 sessions/*.session
 *.session
+*.session-journal
 
 # Environment and Config (keep template, ignore actual)
 .env
@@ -52,6 +53,8 @@ test_*.db
 test_*.sqlite
 *_test.py
 validate_*.py
+/listings
+/exports
 
 # Development files
 script_old.py
