@@ -34,9 +34,13 @@ test_*.db
 # Documentation
 README.md
 
-# Scripts
-start_bot.sh
-test_bot.py
-
-# Old files
+# Test and development files
+test_*.py
+validate_regex.py
 script_old.py
+
+# Development config files
+config.ini.example
+
+# Session files (should be fresh in Docker)
+sessions/*.session

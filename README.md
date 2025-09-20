@@ -46,8 +46,21 @@ A comprehensive Telegram bot built with Telethon for managing second-hand produc
 
 ```
 patrudesapte/
-├── script.py              # Main bot application
-├── database.py            # Database operations and schema
+├── script.py                  # Main bot application
+├── database.py                # Database operations and schema  
+├── session_manager.py         # Conversation state management
+├── bot_handlers.py            # Telegram event handlers
+├── deepseek_api.py            # AI integration (DeepSeek/OpenRouter)
+├── mock_deepseek_api.py       # Fallback API for testing
+├── shop_categories.json       # Product categories definition
+├── config.ini.template        # Configuration template
+├── requirements.txt           # Python dependencies
+├── Dockerfile                 # Docker container setup
+├── docker-compose.yml         # Docker Compose configuration
+├── .dockerignore             # Files to exclude from Docker build
+└── sessions/                 # Telegram session storage
+    └── .gitkeep
+```
 ├── deepseek_api.py        # DeepSeek API integration
 ├── session_manager.py     # User session and conversation state
 ├── bot_handlers.py        # Telegram event handlers
@@ -188,17 +201,50 @@ The bot integrates with DeepSeek API for intelligent product attribute extractio
 6. Confirm and set price
 7. ✅ Listing saved!
 
-## Development & Testing
+## Docker Deployment
 
-The project includes a comprehensive test suite (`test_bot.py`) that verifies:
-- Database operations
-- Session management
-- AI API integration
-- Complete workflow simulation
+### Prerequisites
+- Docker and Docker Compose installed
+- Telegram Bot Token from @BotFather
+- Telegram API ID/Hash from https://my.telegram.org/auth
+- OpenRouter API key from https://openrouter.ai/
 
-Run tests before deployment:
-```bash
-python test_bot.py
+### Quick Start
+
+1. **Clone and setup config:**
+   ```bash
+   git clone <repository>
+   cd patrudesapte
+   cp config.ini.template config.ini
+   # Edit config.ini with your actual API credentials
+   ```
+
+2. **Build and run with Docker:**
+   ```bash
+   docker-compose up --build
+   ```
+
+3. **Or run with Docker directly:**
+   ```bash
+   docker build -t telegram-bot .
+   docker run -v $(pwd)/config.ini:/app/config.ini telegram-bot
+   ```
+
+The bot will automatically:
+- Create SQLite database
+- Initialize session directory
+- Connect to Telegram and start listening
+
+### Configuration
+
+Edit `config.ini` with your credentials:
+```ini
+[default]
+BOT_TOKEN = your_telegram_bot_token_here
+api_id = your_telegram_api_id_here  
+api_hash = your_telegram_api_hash_here
+DEEPSEE_API_KEY = your_openrouter_api_key_here
+DEEPSEE_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 ```
 
 ## Contributing
