@@ -106,7 +106,7 @@ class JSONStorage:
     
     def update_user_session(self, user_id: int, state: str = None, category: str = None, 
                           subcategory: str = None, product_name: str = None, 
-                          extracted_data: Dict = None, user_details: str = None):
+                          extracted_data: Dict = None):
         """Update or create user session"""
         try:
             data = self._load_users_data()
@@ -129,8 +129,6 @@ class JSONStorage:
                 session["product_name"] = product_name
             if extracted_data is not None:
                 session["extracted_data"] = extracted_data
-            if user_details is not None:
-                session["user_details"] = user_details
             
             session["updated_at"] = datetime.now().isoformat()
             
