@@ -153,12 +153,142 @@ Subcategory: {subcategory}
 
 REQUIRED ATTRIBUTES: [{attributes_list}]
 
-...existing code...
+ANALYSIS METHODOLOGY:
+1. BRAND IDENTIFICATION: Extract brand from product name using common patterns
+2. MODEL EXTRACTION: Identify specific model numbers, generations, versions
+3. TECHNICAL RESEARCH: Apply known specifications for this exact product
+4. LOGICAL INFERENCE: Use category knowledge to deduce missing attributes
+5. CONFIDENCE SCORING: Only provide data you're confident about
+
+ATTRIBUTE EXTRACTION RULES:
+
+🔍 IDENTIFICATION ATTRIBUTES:
+- Brand: Extract from product name (Apple, Samsung, JBL, Sony, etc.)
+- Model: Include full model designation (iPhone 13 Pro, Galaxy S24, Flip 4)
+- Product Type: Choose the most specific type for the subcategory
+
+📱 TECHNICAL SPECIFICATIONS:
+- Include units and measurements (GB, MHz, inches, watts, etc.)
+- Use standard industry formats (e.g., "65Hz-20kHz" for frequency)
+- Specify exact values when known (e.g., "16W RMS" not just "16W")
+
+🎯 SMART INFERENCE:
+- If exact spec unknown, use typical specs for similar products in series
+- For popular products, research actual specifications
+- Use pattern recognition (iPhone 13 → iOS, Galaxy → Android)
+
+⚠️ UNCERTAINTY HANDLING:
+- Use "_Not found_" only when truly unable to determine
+- Prefer educated estimates over "_Not found_" for well-known products
+- Apply category defaults when specific data unavailable
+
+CATEGORY EXPERTISE:
+
+📱 ELECTRONICS:
+- Smartphones: Focus on OS, storage, camera specs, connectivity
+- Audio: Prioritize power output, frequency response, connectivity
+- Computers: Emphasize processor, RAM, storage type, screen
+
+📚 BOOKS & MEDIA:
+- Extract author names, publication details, formats
+- Use title analysis for genre classification
+- Apply standard page count estimates by book type
+
+🏠 REAL ESTATE:
+- Location extraction from address/area names
+- Size estimation based on property type descriptions
+- Standard feature inference from property category
+
+EXAMPLES OF HIGH-QUALITY EXTRACTION:
+
+INPUT: "Apple iPhone 14 Pro Max 256GB Space Black"
+OUTPUT: {{
+    "Brand": "Apple",
+    "Model": "iPhone 14 Pro Max",
+    "Operating System": "iOS 16",
+    "Storage Capacity": "256GB",
+    "Color": "Space Black",
+    "Screen Size": "6.7 inches",
+    "RAM": "6GB",
+    "Camera Specs": "48MP Pro camera system",
+    "Battery Life": "Up to 29 hours video playback",
+    "Connectivity (5G, Wi-Fi)": "5G, Wi-Fi 6"
+}}
+
+INPUT: "Sony WH-1000XM4 Wireless Headphones"
+OUTPUT: {{
+    "Product Type (Headphones, Speakers, TV)": "Headphones",
+    "Brand": "Sony",
+    "Model": "WH-1000XM4",
+    "Connectivity (Bluetooth, Wi-Fi)": "Bluetooth 5.0, NFC, 3.5mm wired",
+    "Sound Quality (Hz, dB)": "4Hz-40kHz",
+    "Wattage": "_Not found_",
+    "Screen Resolution (TV)": "_Not found_",
+    "Smart Features": "Active Noise Cancellation, Touch Controls, Google Assistant"
+}}
+
+QUALITY REQUIREMENTS:
+✅ Use EXACT attribute names from required list
+✅ Provide specific, measurable values with units
+✅ Include multiple details in single attributes when relevant
+✅ Apply industry-standard terminology and formats
+✅ Ensure JSON is valid and complete
+✅ Each required attribute must be present exactly once
+
+NOW ANALYZE: "{product_name}"
+
+Extract attributes with maximum accuracy using your product knowledge, pattern recognition, and logical inference. 
+
+ALSO include a price suggestion for the second-hand market based on:
+- Current market value for used items
+- Product age and depreciation
+- Condition assumed as "good"
+- Typical second-hand pricing in USD
+
+ALSO generate a compelling marketplace listing:
+- LISTING TITLE: Create a catchy, concise title (e.g., "Selling MacBook M1 Pro", "iPhone 13 Pro Max 256GB")
+
+CRITICAL: You MUST provide ALL three sections: attributes, price_suggestion, AND listing.
+
+EXAMPLE OUTPUT for "MacBook Air M1 16GB 512GB":
+{{
+    "attributes": {{
+        "Brand": "Apple",
+        "Model": "MacBook Air M1",
+        "RAM": "16GB",
+        "Storage Capacity": "512GB",
+        "Operating System": "macOS"
+    }},
+    "price_suggestion": {{
+        "min_price": 800,
+        "max_price": 1000,
+        "currency": "USD",
+        "reasoning": "MacBook Air M1 with 16GB RAM retains good value"
+    }},
+    "listing": {{
+        "title": "Selling MacBook Air M1 16GB/512GB"
+    }}
+}}
+
+Return ONLY a JSON object with this exact structure:
+{{
+    "attributes": {{
+        // All required attributes here
+    }},
+    "price_suggestion": {{
+        "min_price": <number>,
+        "max_price": <number>, 
+        "currency": "USD",
+        "reasoning": "Brief explanation"
+    }},
+    "listing": {{
+        "title": "Catchy listing title"
+    }}
+}}
 """
         return prompt
 
     def _validate_extracted_data(self, data: Dict, expected_attributes: List[str]) -> Dict:
-        # ...existing code copied from deepseek_api
         validated = {}
         for attr in expected_attributes:
             if attr in data:
@@ -180,7 +310,6 @@ REQUIRED ATTRIBUTES: [{attributes_list}]
         return validated
 
     def _calculate_confidence(self, attributes: Dict) -> float:
-        # ...existing confidence code copied from deepseek_api
         total_attrs = len(attributes)
         not_found_attrs = sum(1 for v in attributes.values() if str(v) in ['_Not found_', 'Unknown', 'N/A', ''])
         if total_attrs == 0:

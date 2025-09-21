@@ -12,7 +12,6 @@ class ConversationState(Enum):
     PRODUCT_INPUT = "product_input"
     PROCESSING_PRODUCT = "processing_product"
     CONFIRMATION = "confirmation"
-    DESCRIPTION_INPUT = "description_input"
     PRICE_INPUT = "price_input"
     COMPLETED = "completed"
 
@@ -162,36 +161,6 @@ class SessionManager:
             return True
         except Exception as e:
             send_logs(f"Error setting extracted data: {e}", 'error')
-            return False
-    
-    def set_description(self, user_id: int, description: str) -> bool:
-        """Set user-provided description for the listing"""
-        try:
-            session = self.get_session_state(user_id)
-            if not session:
-                send_logs(f"No session found for user {user_id}", 'error')
-                return False
-            
-            # Update the extracted data to include the manual description
-            extracted_data = session.get('extracted_data', {})
-            if 'listing' not in extracted_data:
-                extracted_data['listing'] = {}
-            extracted_data['listing']['description'] = description
-            
-            self.storage.update_user_session(
-                user_id=user_id,
-                extracted_data=extracted_data,
-                state=ConversationState.PRICE_INPUT.value
-            )
-            
-            self.storage.log_user_action(user_id, "description_entered", {
-                "description_length": len(description)
-            })
-            
-            send_logs(f"Set description for user {user_id}", 'info')
-            return True
-        except Exception as e:
-            send_logs(f"Error setting description: {e}", 'error')
             return False
     
     def complete_listing(self, user_id: int, username: str, price: float) -> Optional[int]:

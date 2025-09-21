@@ -12,4 +12,4 @@ api_hash = your_telegram_api_hash_here
 ; Provide your AI service API key and endpoint
 AI_API_KEY = your_openrouter_api_key_here
 AI_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-AI_MODEL = "meta-llama/llama-4-maverick:free"
+AI_MODEL = "openai/gpt-oss-20b:free"

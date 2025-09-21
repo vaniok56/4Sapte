@@ -169,7 +169,6 @@ Recommended defaults (OpenRouter example):
    - Attribute extraction based on product names
    - Confidence scoring
    - Price range suggestions
-   - Product descriptions
 
 ## Error Handling & Logging
 

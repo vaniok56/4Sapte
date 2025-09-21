@@ -27,7 +27,7 @@ class ListingExporter:
         Export listing data to a JSON file
         
         Args:
-            listing_data: Complete listing data including attributes, title, description, etc.
+            listing_data: Complete listing data including attributes, title, etc.
             user_id: Telegram user ID
             product_id: Database product ID (if available)
             
@@ -57,7 +57,6 @@ class ListingExporter:
                 },
                 "listing": {
                     "title": listing_data.get('listing', {}).get('title', 'No title'),
-                    "description": listing_data.get('listing', {}).get('description', 'No description'),
                     "product_name": listing_data.get('product_name', 'Unknown'),
                     "category": listing_data.get('category', 'Unknown'),
                     "subcategory": listing_data.get('subcategory', 'Unknown'),

@@ -184,8 +184,8 @@ class BotHandlers:
                 await self.cancel_listing(event, user_id)
             
             elif data == "confirm_product":
-                # User confirmed the extracted product data, now ask for description
-                await self.request_description(event, user_id)
+                # User confirmed the extracted product data, now ask for price
+                await self.request_price(event, user_id)
             
             elif data == "reject_product":
                 # User rejected the extracted data, ask for product name again
@@ -237,8 +237,8 @@ class BotHandlers:
             if state == ConversationState.PRODUCT_INPUT.value:
                 await self.process_product_name(event, user_id, message_text)
             
-            elif state == ConversationState.DESCRIPTION_INPUT.value:
-                await self.process_description_input(event, user_id, message_text)
+            elif state == ConversationState.PRICE_INPUT.value:
+                await self.process_price_input(event, user_id, message_text)
             
             elif state == ConversationState.PRICE_INPUT.value:
                 await self.process_price_input(event, user_id, message_text)
@@ -333,12 +333,11 @@ class BotHandlers:
                             f"${price_suggestion['max_price']:.0f}\n"
                             f"_{price_suggestion.get('reasoning', '')}_\n\n")
             
-            # Complete listing display
+            # Complete listing display (description removed)
             message_text = (
                 f"🎯 **Complete Listing Generated**\n\n"
                 f"📝 **Title:** {listing.get('title', 'No title generated')}\n\n"
-                f"📄 **Description:**\n{listing.get('description', 'No description provided')}\n\n"
-                f"📊 **Product Details:**\n"
+                f" **Product Details:**\n"
                 f"🏷️ **Product:** {extracted_data['product_name']}\n"
                 f"📁 **Category:** {extracted_data['category']}\n"
                 f"📂 **Subcategory:** {extracted_data['subcategory']}\n"
@@ -363,41 +362,6 @@ class BotHandlers:
         except Exception as e:
             send_logs(f"Error showing product confirmation: {e}", 'error')
             await message.edit("❌ Error displaying product information.")
-    
-    async def request_description(self, event, user_id: int):
-        """Request user to input description manually"""
-        try:
-            session = self.session_manager.get_session_state(user_id)
-            if not session:
-                await event.answer("❌ Session not found.")
-                return
-
-            # Update session state to description input
-            self.session_manager.update_session_state(user_id, ConversationState.DESCRIPTION_INPUT)
-
-            # Get extracted data
-            extracted_data = session['extracted_data']
-            
-            await event.edit(
-                f"📝 **Write Your Description**\n\n"
-                f"🏷️ Product: {extracted_data['product_name']}\n"
-                f"📁 Category: {session['category']} → {session['subcategory']}\n\n"
-                f"✍️ Please write a detailed description of your item:\n"
-                f"• Condition (e.g., 8/10, excellent, good, etc.)\n"
-                f"• How long you've used it\n"
-                f"• Any important details buyers should know\n"
-                f"• Mention if inspection is welcome\n\n"
-                f"💬 **Example:** _\"Condition 8/10. Used for 2 years but well maintained. "
-                f"All functions work perfectly. You can test everything in person. "
-                f"Minor scratches on the back but screen is perfect. Bargaining welcome.\"_\n\n"
-                f"Type your description below:",
-                buttons=[[Button.inline("❌ Cancel", "cancel_listing")]],
-                parse_mode="Markdown"
-            )
-            
-        except Exception as e:
-            send_logs(f"Error requesting description: {e}", 'error')
-            await event.answer("❌ Error requesting description.")
     
     async def request_price(self, event, user_id: int):
         """Request price input from user"""
@@ -435,66 +399,7 @@ class BotHandlers:
             send_logs(f"Error requesting price: {e}", 'error')
             await event.answer("❌ Error requesting price.")
     
-    async def process_description_input(self, event, user_id: int, description_text: str):
-        """Process manual description input from user"""
-        try:
-            # Validate description length
-            description_text = description_text.strip()
-            if len(description_text) < 10:
-                await event.respond(
-                    "❌ Description too short. Please provide at least 10 characters with useful details about your product."
-                )
-                return
-            
-            if len(description_text) > 500:
-                await event.respond(
-                    "❌ Description too long. Please keep it under 500 characters."
-                )
-                return
-            
-            # Store description in session
-            self.session_manager.set_description(user_id, description_text)
-            
-            # Log action
-            self.session_manager.log_user_action(
-                user_id, 
-                'description_entered', 
-                {'description_length': len(description_text)}
-            )
-            
-            # Prepare suggested price text from extracted data if available
-            session = self.session_manager.get_session_state(user_id)
-            extracted_data = session.get('extracted_data', {}) if session else {}
-            price_suggestion = extracted_data.get('price_suggestion', {})
-
-            suggestion_text = ""
-            if price_suggestion and price_suggestion.get('max_price', 0) > 0:
-                try:
-                    suggestion_text = (
-                        f"\n💡 **Suggested Price Range:** ${price_suggestion['min_price']:.0f} - ${price_suggestion['max_price']:.0f}\n"
-                        f"_{price_suggestion.get('reasoning', '')}_\n"
-                    )
-                except Exception:
-                    # Fallback to raw values if formatting fails
-                    suggestion_text = (
-                        f"\n💡 **Suggested Price Range:** {price_suggestion.get('min_price')} - {price_suggestion.get('max_price')} {price_suggestion.get('currency', '')}\n"
-                        f"_{price_suggestion.get('reasoning', '')}_\n"
-                    )
-
-            # Confirm description received and ask for price including suggestion
-            await event.respond(
-                f"✅ **Description saved:**\n\n{description_text}\n\n"
-                f"💰 **Step 3: Set your price**\n{suggestion_text}\n"
-                f"Enter the price for your product (e.g., 299.99 or 150)",
-                parse_mode="Markdown"
-            )
-            
-            # Move to price input state
-            self.session_manager.update_session_state(user_id, ConversationState.PRICE_INPUT)
-            
-        except Exception as e:
-            send_logs(f"Error processing description input: {e}", 'error')
-            await event.respond("❌ An error occurred processing your description. Please try again.")
+    # Description step removed - methods deleted
     
     async def process_price_input(self, event, user_id: int, price_text: str):
         """Process price input and complete the listing"""
@@ -555,7 +460,7 @@ class BotHandlers:
                     f"🆔 **Listing ID:** #{product_id}\n\n"
                     f"📝 **Your Listing:**\n"
                     f"**Title:** {listing.get('title', extracted_data.get('product_name', 'Unknown'))}\n\n"
-                    f"**Description:**\n{listing.get('description', 'No description available')}\n\n"
+                    # Description removed from listing display
                     f"📊 **Details:**\n"
                     f"🏷️ **Product:** {extracted_data.get('product_name', 'Unknown')}\n"
                     f"📁 **Category:** {extracted_data.get('category', 'Unknown')}\n"

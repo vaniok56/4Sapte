@@ -43,9 +43,9 @@ storage = JSONStorage()
 # Initialize AI Model Client (real API only)
 try:
     ai_client = AIModelClient(AI_API_KEY, AI_API_URL.strip('"'), AI_MODEL)
-    send_logs("✅ AI Model Client initialized successfully", 'info')
+    send_logs("AI Model Client initialized successfully", 'info')
 except Exception as e:
-    send_logs(f"⚠️ AI Model Client initialization failed: {e}", 'error')
+    send_logs(f"AI Model Client initialization failed: {e}", 'error')
     raise
 
 session_manager = SessionManager()
@@ -131,20 +131,18 @@ Need help? The bot will guide you through each step! 🚀
 
 ### MAIN
 if __name__ == '__main__':
-    send_logs("🤖 Second-Hand Market Bot Starting...", 'info')
-    send_logs(f"📊 JSON Storage initialized: {storage.users_file} and {storage.listings_dir}/", 'info')
+    send_logs("Second-Hand Market Bot Starting...", 'info')
+    send_logs(f"JSON Storage initialized: {storage.users_file} and {storage.listings_dir}/", 'info')
     
     # Check which API is being used
     api_type = f"AI Service - Model: {ai_client.model}"
-    send_logs(f"🤖 AI Service: {api_type}", 'info')
+    send_logs(f"AI Service: {api_type}", 'info')
     
-    send_logs(f"📋 Categories loaded: {len(session_manager.get_categories())} categories", 'info')
+    send_logs(f"Categories loaded: {len(session_manager.get_categories())} categories", 'info')
     
     try:
         client.run_until_disconnected()
     except KeyboardInterrupt:
-        send_logs("🛑 Bot stopped by user", 'info')
-        print("\n🛑 Bot stopped!")
+        send_logs("Bot stopped by user", 'info')
     except Exception as e:
         send_logs(f"Fatal error: {e}", 'error')
-        print(f"\n❌ Fatal error: {e}")
