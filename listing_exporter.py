@@ -7,6 +7,7 @@ import os
 from datetime import datetime
 from typing import Dict, Optional
 import logging
+from logs import send_logs
 
 class ListingExporter:
     def __init__(self, export_dir: str = "exports"):
@@ -71,11 +72,11 @@ class ListingExporter:
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(export_data, f, indent=2, ensure_ascii=False)
             
-            logging.info(f"Listing exported to: {filepath}")
+            send_logs(f"Listing exported to: {filepath}", 'info')
             return filepath
             
         except Exception as e:
-            logging.error(f"Error exporting listing: {e}")
+            send_logs(f"Error exporting listing: {e}", 'error')
             raise e
     
     def update_listing_price(self, filepath: str, final_price: float) -> bool:
@@ -91,7 +92,7 @@ class ListingExporter:
         """
         try:
             if not os.path.exists(filepath):
-                logging.error(f"File not found: {filepath}")
+                send_logs(f"File not found: {filepath}", 'error')
                 return False
                 
             # Read existing data
@@ -106,11 +107,11 @@ class ListingExporter:
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             
-            logging.info(f"Price updated in: {filepath}")
+            send_logs(f"Price updated in: {filepath}", 'info')
             return True
             
         except Exception as e:
-            logging.error(f"Error updating listing price: {e}")
+            send_logs(f"Error updating listing price: {e}", 'error')
             return False
     
     def get_user_exports(self, user_id: int, limit: int = 10) -> list:
@@ -140,5 +141,5 @@ class ListingExporter:
             return [filepath for filepath, _ in user_files[:limit]]
             
         except Exception as e:
-            logging.error(f"Error getting user exports: {e}")
+            send_logs(f"Error getting user exports: {e}", 'error')
             return []

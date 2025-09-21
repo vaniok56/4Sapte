@@ -8,8 +8,8 @@ BOT_TOKEN = your_telegram_bot_token_here
 api_id = your_telegram_api_id_here
 api_hash = your_telegram_api_hash_here
 
-; DeepSeek/OpenRouter API Configuration  
-; Get API key from https://openrouter.ai/
-DEEPSEE_API_KEY = your_openrouter_api_key_here
-DEEPSEE_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-model_deepseek = "deepseek/deepseek-chat-v3.1:free"
+; AI Service / OpenRouter API Configuration
+; Provide your AI service API key and endpoint
+AI_API_KEY = your_openrouter_api_key_here
+AI_API_URL = "https://openrouter.ai/api/v1/chat/completions"
+AI_MODEL = "meta-llama/llama-4-maverick:free"

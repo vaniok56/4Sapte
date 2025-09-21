@@ -1,17 +1,18 @@
 from telethon import events
 from telethon.tl.custom import Button
 import logging
+from logs import send_logs
 from typing import List, Dict
 from session_manager import SessionManager, ConversationState
-from deepseek_api import DeepSeekAPI
+from ai_api import AIModelClient
 from json_storage import JSONStorage
 from listing_exporter import ListingExporter
 import re
 
 class BotHandlers:
-    def __init__(self, storage: JSONStorage, deepseek_api: DeepSeekAPI, session_manager: SessionManager):
+    def __init__(self, storage: JSONStorage, ai_client: AIModelClient, session_manager: SessionManager):
         self.storage = storage
-        self.deepseek_api = deepseek_api
+        self.deepseek_api = ai_client
         self.session_manager = session_manager
         self.exporter = ListingExporter()
     
@@ -70,7 +71,7 @@ class BotHandlers:
                 await event.respond("❌ Failed to start listing session. Please try again.")
                 
         except Exception as e:
-            logging.error(f"Error in plaseaza_anunt command: {e}")
+            send_logs(f"Error in plaseaza_anunt command: {e}", 'error')
             await event.respond("❌ An error occurred. Please try again later.")
     
     async def show_category_selection(self, event):
@@ -105,7 +106,7 @@ class BotHandlers:
             )
             
         except Exception as e:
-            logging.error(f"Error showing category selection: {e}")
+            send_logs(f"Error showing category selection: {e}", 'error')
             await event.respond("❌ Error displaying categories. Please try again.")
     
     async def show_subcategory_selection(self, event, category_name: str):
@@ -141,7 +142,7 @@ class BotHandlers:
             )
             
         except Exception as e:
-            logging.error(f"Error showing subcategory selection: {e}")
+            send_logs(f"Error showing subcategory selection: {e}", 'error')
             await event.respond("❌ Error displaying subcategories. Please try again.")
     
     async def handle_callback_query(self, event):
@@ -202,7 +203,7 @@ class BotHandlers:
             await event.answer()
             
         except Exception as e:
-            logging.error(f"Error handling callback query: {e}")
+            send_logs(f"Error handling callback query: {e}", 'error')
             await event.answer("❌ An error occurred. Please try again.")
     
     async def request_product_name(self, event, category_name: str, subcategory_name: str):
@@ -218,7 +219,7 @@ class BotHandlers:
             )
             
         except Exception as e:
-            logging.error(f"Error requesting product name: {e}")
+            send_logs(f"Error requesting product name: {e}", 'error')
     
     async def handle_text_message(self, event):
         """Handle text messages based on current session state"""
@@ -243,7 +244,7 @@ class BotHandlers:
                 await self.process_price_input(event, user_id, message_text)
                 
         except Exception as e:
-            logging.error(f"Error handling text message: {e}")
+            send_logs(f"Error handling text message: {e}", 'error')
             await event.respond("❌ An error occurred processing your message.")
     
     async def process_product_name(self, event, user_id: int, product_name: str):
@@ -279,7 +280,7 @@ class BotHandlers:
                 session['category'], session['subcategory']
             )
             
-            # Extract product attributes using DeepSeek API
+            # Extract product attributes using AI service
             extracted_data = await self.deepseek_api.extract_product_attributes(
                 product_name=product_name,
                 category=session['category'],
@@ -294,7 +295,7 @@ class BotHandlers:
                 await processing_message.edit("❌ Error processing product data. Please try again.")
                 
         except Exception as e:
-            logging.error(f"Error processing product name: {e}")
+            send_logs(f"Error processing product name: {e}", 'error')
             await event.respond("❌ Error analyzing product. Please try again.")
     
     async def show_product_confirmation(self, message, extracted_data: Dict):
@@ -360,7 +361,7 @@ class BotHandlers:
             )
 
         except Exception as e:
-            logging.error(f"Error showing product confirmation: {e}")
+            send_logs(f"Error showing product confirmation: {e}", 'error')
             await message.edit("❌ Error displaying product information.")
     
     async def request_description(self, event, user_id: int):
@@ -395,7 +396,7 @@ class BotHandlers:
             )
             
         except Exception as e:
-            logging.error(f"Error requesting description: {e}")
+            send_logs(f"Error requesting description: {e}", 'error')
             await event.answer("❌ Error requesting description.")
     
     async def request_price(self, event, user_id: int):
@@ -431,7 +432,7 @@ class BotHandlers:
             )
             
         except Exception as e:
-            logging.error(f"Error requesting price: {e}")
+            send_logs(f"Error requesting price: {e}", 'error')
             await event.answer("❌ Error requesting price.")
     
     async def process_description_input(self, event, user_id: int, description_text: str):
@@ -461,11 +462,30 @@ class BotHandlers:
                 {'description_length': len(description_text)}
             )
             
-            # Confirm description received and ask for price
+            # Prepare suggested price text from extracted data if available
+            session = self.session_manager.get_session_state(user_id)
+            extracted_data = session.get('extracted_data', {}) if session else {}
+            price_suggestion = extracted_data.get('price_suggestion', {})
+
+            suggestion_text = ""
+            if price_suggestion and price_suggestion.get('max_price', 0) > 0:
+                try:
+                    suggestion_text = (
+                        f"\n💡 **Suggested Price Range:** ${price_suggestion['min_price']:.0f} - ${price_suggestion['max_price']:.0f}\n"
+                        f"_{price_suggestion.get('reasoning', '')}_\n"
+                    )
+                except Exception:
+                    # Fallback to raw values if formatting fails
+                    suggestion_text = (
+                        f"\n💡 **Suggested Price Range:** {price_suggestion.get('min_price')} - {price_suggestion.get('max_price')} {price_suggestion.get('currency', '')}\n"
+                        f"_{price_suggestion.get('reasoning', '')}_\n"
+                    )
+
+            # Confirm description received and ask for price including suggestion
             await event.respond(
-                f"✅ **Description saved:**\n\n{description_text}\n\n" +
-                "💰 **Step 3: Set your price**\n" +
-                "Enter the price for your product (e.g., 299.99 or 150)",
+                f"✅ **Description saved:**\n\n{description_text}\n\n"
+                f"💰 **Step 3: Set your price**\n{suggestion_text}\n"
+                f"Enter the price for your product (e.g., 299.99 or 150)",
                 parse_mode="Markdown"
             )
             
@@ -473,7 +493,7 @@ class BotHandlers:
             self.session_manager.update_session_state(user_id, ConversationState.PRICE_INPUT)
             
         except Exception as e:
-            logging.error(f"Error processing description input: {e}")
+            send_logs(f"Error processing description input: {e}", 'error')
             await event.respond("❌ An error occurred processing your description. Please try again.")
     
     async def process_price_input(self, event, user_id: int, price_text: str):
@@ -514,9 +534,9 @@ class BotHandlers:
                 # Export to JSON file
                 try:
                     json_filepath = self.exporter.export_listing(extracted_data, user_id, product_id)
-                    logging.info(f"Listing exported to JSON: {json_filepath}")
+                    send_logs(f"Listing exported to JSON: {json_filepath}", 'info')
                 except Exception as export_error:
-                    logging.error(f"Error exporting to JSON: {export_error}")
+                    send_logs(f"Error exporting to JSON: {export_error}", 'error')
                     json_filepath = None
                 
                 # Get listing information and attributes
@@ -553,7 +573,7 @@ class BotHandlers:
                 await event.respond("❌ Failed to save listing. Please try again.")
                 
         except Exception as e:
-            logging.error(f"Error processing price input: {e}")
+            send_logs(f"Error processing price input: {e}", 'error')
             await event.respond("❌ Error processing price. Please try again.")
     
     async def cancel_listing(self, event, user_id: int, use_edit: bool = True):
@@ -584,7 +604,7 @@ class BotHandlers:
                     await event.respond("❌ Error cancelling listing.")
                 
         except Exception as e:
-            logging.error(f"Error cancelling listing: {e}")
+            send_logs(f"Error cancelling listing: {e}", 'error')
             if not use_edit:
                 await event.respond("❌ Error cancelling listing.")
     
@@ -600,7 +620,7 @@ class BotHandlers:
                 await event.respond("ℹ️ No active listing session to cancel.")
                 
         except Exception as e:
-            logging.error(f"Error handling cancel command: {e}")
+            send_logs(f"Error handling cancel command: {e}", 'error')
             await event.respond("❌ Error processing cancel command.")
     
     async def handle_status_command(self, event):
@@ -616,7 +636,7 @@ class BotHandlers:
                 await event.respond("ℹ️ No active listing session. Use /plaseaza_anunt to start one!")
                 
         except Exception as e:
-            logging.error(f"Error handling status command: {e}")
+            send_logs(f"Error handling status command: {e}", 'error')
             await event.respond("❌ Error getting status.")
     
     async def handle_my_listings_command(self, event):
@@ -644,5 +664,5 @@ class BotHandlers:
             await event.respond(listings_text, parse_mode="Markdown")
             
         except Exception as e:
-            logging.error(f"Error handling my_listings command: {e}")
+            send_logs(f"Error handling my_listings command: {e}", 'error')
             await event.respond("❌ Error retrieving your listings.")

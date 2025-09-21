@@ -1,13 +1,17 @@
 import json
 import os
 import logging
+from logs import send_logs
 from datetime import datetime
 from typing import Dict, List, Optional, Any
+import threading
 
 class JSONStorage:
     def __init__(self, users_file="users.json", listings_dir="listings"):
         self.users_file = users_file
         self.listings_dir = listings_dir
+        # Lock to protect concurrent access to the users.json file within the process
+        self._lock = threading.Lock()
         self.init_storage()
     
     def init_storage(self):
@@ -26,27 +30,31 @@ class JSONStorage:
                 with open(self.users_file, 'w') as f:
                     json.dump(initial_data, f, indent=2)
             
-            logging.info("JSON storage initialized successfully")
+            send_logs("JSON storage initialized successfully", 'info')
             
         except Exception as e:
-            logging.error(f"Error initializing JSON storage: {e}")
+            send_logs(f"Error initializing JSON storage: {e}", 'error')
     
     def _load_users_data(self) -> Dict:
         """Load users data from JSON file"""
         try:
-            with open(self.users_file, 'r') as f:
-                return json.load(f)
+            # Protect file read with a lock to avoid concurrent partial reads/writes
+            with self._lock:
+                with open(self.users_file, 'r') as f:
+                    return json.load(f)
         except Exception as e:
-            logging.error(f"Error loading users data: {e}")
+            send_logs(f"Error loading users data: {e}", 'error')
             return {"sessions": {}, "logs": []}
     
     def _save_users_data(self, data: Dict):
         """Save users data to JSON file"""
         try:
-            with open(self.users_file, 'w') as f:
-                json.dump(data, f, indent=2)
+            # Protect file write with a lock to avoid concurrent writes corrupting the file
+            with self._lock:
+                with open(self.users_file, 'w') as f:
+                    json.dump(data, f, indent=2)
         except Exception as e:
-            logging.error(f"Error saving users data: {e}")
+            send_logs(f"Error saving users data: {e}", 'error')
     
     def save_product(self, user_id: int, username: str, category: str, subcategory: str, 
                     product_name: str, attributes: Dict, price: float) -> Optional[int]:
@@ -75,11 +83,11 @@ class JSONStorage:
             with open(listing_file, 'w') as f:
                 json.dump(product_data, f, indent=2)
             
-            logging.info(f"Product saved successfully with ID: {product_id}")
+            send_logs(f"Product saved successfully with ID: {product_id}", 'info')
             return product_id
             
         except Exception as e:
-            logging.error(f"Error saving product: {e}")
+            send_logs(f"Error saving product: {e}", 'error')
             return None
     
     def get_user_session(self, user_id: int) -> Optional[Dict]:
@@ -101,7 +109,7 @@ class JSONStorage:
             return None
             
         except Exception as e:
-            logging.error(f"Error getting user session: {e}")
+            send_logs(f"Error getting user session: {e}", 'error')
             return None
     
     def update_user_session(self, user_id: int, state: str = None, category: str = None, 
@@ -135,7 +143,7 @@ class JSONStorage:
             self._save_users_data(data)
             
         except Exception as e:
-            logging.error(f"Error updating user session: {e}")
+            send_logs(f"Error updating user session: {e}", 'error')
     
     def clear_user_session(self, user_id: int):
         """Clear user session after completing the listing"""
@@ -148,30 +156,22 @@ class JSONStorage:
                 self._save_users_data(data)
             
         except Exception as e:
-            logging.error(f"Error clearing user session: {e}")
+            send_logs(f"Error clearing user session: {e}", 'error')
     
     def log_user_action(self, user_id: int, action: str, details: Dict = None):
         """Log user actions for analytics and debugging"""
         try:
-            data = self._load_users_data()
-            
-            log_entry = {
+            log_msg = {
                 "user_id": user_id,
                 "action": action,
                 "details": details,
                 "timestamp": datetime.now().isoformat()
             }
-            
-            data["logs"].append(log_entry)
-            
-            # Keep only last 1000 logs to prevent file from growing too large
-            if len(data["logs"]) > 1000:
-                data["logs"] = data["logs"][-1000:]
-            
-            self._save_users_data(data)
-            
+            # Emit as INFO so it's captured by existing handlers (file + stdout)
+            send_logs(f"User action: {log_msg}", 'info')
         except Exception as e:
-            logging.error(f"Error logging user action: {e}")
+            # Logging should never raise; if it does, fallback to error log
+            send_logs(f"Error emitting user action log: {e}", 'error')
     
     def get_user_products(self, user_id: int, limit: int = 10) -> List[Dict]:
         """Get user's recent products"""
@@ -194,7 +194,7 @@ class JSONStorage:
                     if product.get("user_id") == user_id:
                         products.append(product)
                 except Exception as e:
-                    logging.error(f"Error loading listing file {filename}: {e}")
+                    send_logs(f"Error loading listing file {filename}: {e}", 'error')
                     continue
             
             # Sort by created_at (most recent first) and limit
@@ -202,7 +202,7 @@ class JSONStorage:
             return products[:limit]
             
         except Exception as e:
-            logging.error(f"Error getting user products: {e}")
+            send_logs(f"Error getting user products: {e}", 'error')
             return []
     
     def get_product_by_id(self, product_id: int) -> Optional[Dict]:
@@ -215,7 +215,7 @@ class JSONStorage:
             return None
             
         except Exception as e:
-            logging.error(f"Error getting product by ID: {e}")
+            send_logs(f"Error getting product by ID: {e}", 'error')
             return None
     
     def update_product_status(self, product_id: int, status: str) -> bool:
@@ -236,5 +236,5 @@ class JSONStorage:
             return False
             
         except Exception as e:
-            logging.error(f"Error updating product status: {e}")
+            send_logs(f"Error updating product status: {e}", 'error')
             return False

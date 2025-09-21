@@ -1,5 +1,6 @@
 import json
 import logging
+from logs import send_logs
 from enum import Enum
 from typing import Dict, List, Optional, Any
 from json_storage import JSONStorage
@@ -24,10 +25,10 @@ class SessionManager:
         try:
             with open(categories_file, 'r') as f:
                 data = json.load(f)
-            logging.info(f"Loaded {len(data.get('shop_categories', []))} categories")
+            send_logs(f"Loaded {len(data.get('shop_categories', []))} categories", 'info')
             return data
         except Exception as e:
-            logging.error(f"Error loading categories: {e}")
+            send_logs(f"Error loading categories: {e}", 'error')
             return {"shop_categories": []}
     
     def get_categories(self) -> List[Dict]:
@@ -61,10 +62,10 @@ class SessionManager:
                 state=ConversationState.CATEGORY_SELECTION.value
             )
             self.storage.log_user_action(user_id, "session_started", {})
-            logging.info(f"Started new session for user {user_id}")
+            send_logs(f"Started new session for user {user_id}", 'info')
             return True
         except Exception as e:
-            logging.error(f"Error starting session: {e}")
+            send_logs(f"Error starting session: {e}", 'error')
             return False
     
     def get_session_state(self, user_id: int) -> Optional[Dict]:
@@ -79,16 +80,16 @@ class SessionManager:
             
             self.storage.update_user_session(user_id=user_id, **update_data)
             
-            logging.info(f"Updated session state for user {user_id} to {state.value}")
+            send_logs(f"Updated session state for user {user_id} to {state.value}", 'info')
             return True
         except Exception as e:
-            logging.error(f"Error updating session state: {e}")
+            send_logs(f"Error updating session state: {e}", 'error')
             return False
     
     def set_category(self, user_id: int, category: str) -> bool:
         try:
             if not self.get_category_by_name(category):
-                logging.error(f"Invalid category: {category}")
+                send_logs(f"Invalid category: {category}", 'error')
                 return False
             
             self.storage.update_user_session(
@@ -97,21 +98,21 @@ class SessionManager:
                 state=ConversationState.SUBCATEGORY_SELECTION.value
             )
             self.storage.log_user_action(user_id, "category_selected", {"category": category})
-            logging.info(f"Set category {category} for user {user_id}")
+            send_logs(f"Set category {category} for user {user_id}", 'info')
             return True
         except Exception as e:
-            logging.error(f"Error setting category: {e}")
+            send_logs(f"Error setting category: {e}", 'error')
             return False
     
     def set_subcategory(self, user_id: int, subcategory: str) -> bool:
         try:
             session = self.get_session_state(user_id)
             if not session or not session.get('category'):
-                logging.error(f"No category selected for user {user_id}")
+                send_logs(f"No category selected for user {user_id}", 'error')
                 return False
             
             if not self.get_subcategory_by_name(session['category'], subcategory):
-                logging.error(f"Invalid subcategory {subcategory}")
+                send_logs(f"Invalid subcategory {subcategory}", 'error')
                 return False
             
             self.storage.update_user_session(
@@ -123,10 +124,10 @@ class SessionManager:
                 "category": session['category'],
                 "subcategory": subcategory
             })
-            logging.info(f"Set subcategory {subcategory} for user {user_id}")
+            send_logs(f"Set subcategory {subcategory} for user {user_id}", 'info')
             return True
         except Exception as e:
-            logging.error(f"Error setting subcategory: {e}")
+            send_logs(f"Error setting subcategory: {e}", 'error')
             return False
     
     def set_product_name(self, user_id: int, product_name: str) -> bool:
@@ -139,10 +140,10 @@ class SessionManager:
             self.storage.log_user_action(user_id, "product_name_entered", {
                 "product_name": product_name
             })
-            logging.info(f"Set product name for user {user_id}")
+            send_logs(f"Set product name for user {user_id}", 'info')
             return True
         except Exception as e:
-            logging.error(f"Error setting product name: {e}")
+            send_logs(f"Error setting product name: {e}", 'error')
             return False
     
     def set_extracted_data(self, user_id: int, extracted_data: Dict) -> bool:
@@ -157,10 +158,10 @@ class SessionManager:
                 "confidence": extracted_data.get('confidence', 0),
                 "attributes_count": len(extracted_data.get('attributes', {}))
             })
-            logging.info(f"Set extracted data for user {user_id}")
+            send_logs(f"Set extracted data for user {user_id}", 'info')
             return True
         except Exception as e:
-            logging.error(f"Error setting extracted data: {e}")
+            send_logs(f"Error setting extracted data: {e}", 'error')
             return False
     
     def set_description(self, user_id: int, description: str) -> bool:
@@ -168,7 +169,7 @@ class SessionManager:
         try:
             session = self.get_session_state(user_id)
             if not session:
-                logging.error(f"No session found for user {user_id}")
+                send_logs(f"No session found for user {user_id}", 'error')
                 return False
             
             # Update the extracted data to include the manual description
@@ -187,22 +188,22 @@ class SessionManager:
                 "description_length": len(description)
             })
             
-            logging.info(f"Set description for user {user_id}")
+            send_logs(f"Set description for user {user_id}", 'info')
             return True
         except Exception as e:
-            logging.error(f"Error setting description: {e}")
+            send_logs(f"Error setting description: {e}", 'error')
             return False
     
     def complete_listing(self, user_id: int, username: str, price: float) -> Optional[int]:
         try:
             session = self.get_session_state(user_id)
             if not session:
-                logging.error(f"No session found for user {user_id}")
+                send_logs(f"No session found for user {user_id}", 'error')
                 return None
             
             extracted_data = session.get('extracted_data')
             if not extracted_data:
-                logging.error(f"No extracted data found for user {user_id}")
+                send_logs(f"No extracted data found for user {user_id}", 'error')
                 return None
             
             product_id = self.storage.save_product(
@@ -222,12 +223,12 @@ class SessionManager:
                     "category": extracted_data.get('category', 'Unknown'),
                     "price": price
                 })
-                logging.info(f"Completed listing for user {user_id}, product ID: {product_id}")
+                send_logs(f"Completed listing for user {user_id}, product ID: {product_id}", 'info')
                 return product_id
             
             return None
         except Exception as e:
-            logging.error(f"Error completing listing: {e}")
+            send_logs(f"Error completing listing: {e}", 'error')
             return None
     
     def cancel_listing(self, user_id: int) -> bool:
@@ -242,10 +243,10 @@ class SessionManager:
                 })
             
             self.storage.clear_user_session(user_id)
-            logging.info(f"Cancelled listing for user {user_id}")
+            send_logs(f"Cancelled listing for user {user_id}", 'info')
             return True
         except Exception as e:
-            logging.error(f"Error cancelling listing: {e}")
+            send_logs(f"Error cancelling listing: {e}", 'error')
             return False
     
     def is_session_active(self, user_id: int) -> bool:
@@ -284,5 +285,5 @@ class SessionManager:
             self.storage.log_user_action(user_id, action, details)
             return True
         except Exception as e:
-            logging.error(f"Error logging user action: {e}")
+            send_logs(f"Error logging user action: {e}", 'error')
             return False

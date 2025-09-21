@@ -26,6 +26,7 @@
             "Processor",
             "RAM",
             "Storage Type (SSD/HDD)",
+            "Storage Capacity",
             "Screen Size",
             "Graphics Card",
             "Operating System",
@@ -136,7 +137,6 @@
           "name": "Houses",
           "attributes": [
             "Location",
-            "Price",
             "Number of Bedrooms",
             "Number of Bathrooms",
             "Square Footage",
@@ -150,7 +150,6 @@
           "name": "Apartments",
           "attributes": [
             "Location",
-            "Price",
             "Number of Bedrooms",
             "Number of Bathrooms",
             "Square Footage",

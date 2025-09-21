@@ -1,11 +1,11 @@
 # Second-Hand Market Telegram Bot
 
-A comprehensive Telegram bot built with Telethon for managing second-hand product listings. The bot uses AI (DeepSeek API) to automatically extract product attributes and saves listings to a SQLite database.
+A comprehensive Telegram bot built with Telethon for managing second-hand product listings. The bot uses an AI service to automatically extract product attributes and saves listings to a SQLite database.
 
 ## Features
 
 🤖 **AI-Powered Product Analysis**
-- Automatically extracts product attributes using DeepSeek API
+- Automatically extracts product attributes using a configurable AI service
 - Smart categorization and subcategorization
 - Confidence scoring for extracted data
 
@@ -37,7 +37,7 @@ A comprehensive Telegram bot built with Telethon for managing second-hand produc
 2. **Select Category**: Bot shows inline keyboard with categories (Electronics, Books & Media, Houses & Apartments)
 3. **Select Subcategory**: Bot shows relevant subcategories
 4. **Enter Product Name**: User types detailed product name/model
-5. **AI Analysis**: Bot uses DeepSeek API to extract attributes
+5. **AI Analysis**: Bot uses a configurable AI service to extract attributes
 6. **Confirmation**: User reviews and confirms extracted information
 7. **Set Price**: User enters selling price
 8. **Save to Database**: Listing is saved with all details
@@ -50,8 +50,7 @@ patrudesapte/
 ├── database.py                # Database operations and schema  
 ├── session_manager.py         # Conversation state management
 ├── bot_handlers.py            # Telegram event handlers
-├── deepseek_api.py            # AI integration (DeepSeek/OpenRouter)
-├── mock_deepseek_api.py       # Fallback API for testing
+├── ai_api.py                  # AI integration (generic client)
 ├── shop_categories.json       # Product categories definition
 ├── config.ini.template        # Configuration template
 ├── requirements.txt           # Python dependencies
@@ -61,7 +60,6 @@ patrudesapte/
 └── sessions/                 # Telegram session storage
     └── .gitkeep
 ```
-├── deepseek_api.py        # DeepSeek API integration
 ├── session_manager.py     # User session and conversation state
 ├── bot_handlers.py        # Telegram event handlers
 ├── test_bot.py           # Comprehensive test suite
@@ -87,14 +85,14 @@ Edit `config.ini` with your credentials:
 BOT_TOKEN = your_telegram_bot_token
 api_id = your_telegram_api_id
 api_hash = your_telegram_api_hash
-DEEPSEE_API_KEY = your_deepseek_api_key
-DEEPSEE_API_URL = "https://openrouter.ai/api/v1/chat/completions"
+AI_API_KEY = your_ai_service_api_key
+AI_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 ```
 
 **Getting the credentials:**
 - **Telegram Bot Token**: Message [@BotFather](https://t.me/BotFather) on Telegram
 - **API ID/Hash**: Get from [my.telegram.org](https://my.telegram.org/auth)
-- **DeepSeek API Key**: Get from [OpenRouter.ai](https://openrouter.ai/) or DeepSeek directly
+- **AI Service API Key**: Get from your AI provider (e.g., [OpenRouter.ai](https://openrouter.ai/))
 
 ### 3. Run Tests
 ```bash
@@ -159,18 +157,19 @@ The bot supports the following categories with AI-extracted attributes:
 - **Houses**: Location, Price, Bedrooms, Bathrooms, Square Footage, Lot Size, Year Built, Property Type, Features
 - **Apartments**: Location, Price, Bedrooms, Bathrooms, Square Footage, Floor Level, Year Built, Amenities, Lease Term
 
-## API Integration
+### AI Integration
 
-The bot integrates with DeepSeek API for intelligent product attribute extraction:
+The bot integrates with a configurable AI service for intelligent product attribute extraction. Configure the API endpoint, key and model in `config.ini`.
 
-- **Model**: deepseek/deepseek-r1:free
+Recommended defaults (OpenRouter example):
+
 - **Temperature**: 0.3 (for consistent results)
 - **Max Tokens**: 1000
 - **Features**: 
-  - Attribute extraction based on product names
-  - Confidence scoring
-  - Price range suggestions
-  - Product descriptions
+   - Attribute extraction based on product names
+   - Confidence scoring
+   - Price range suggestions
+   - Product descriptions
 
 ## Error Handling & Logging
 
@@ -243,8 +242,8 @@ Edit `config.ini` with your credentials:
 BOT_TOKEN = your_telegram_bot_token_here
 api_id = your_telegram_api_id_here  
 api_hash = your_telegram_api_hash_here
-DEEPSEE_API_KEY = your_openrouter_api_key_here
-DEEPSEE_API_URL = "https://openrouter.ai/api/v1/chat/completions"
+AI_API_KEY = your_openrouter_api_key_here
+AI_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 ```
 
 ## Contributing

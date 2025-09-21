@@ -6,11 +6,11 @@ import configparser # Library for reading from a configuration file, # pip insta
 import datetime # Library that we will need to get the day and time, # pip install datetime
 import pytz
 import logging
+from logs import send_logs
 
 # Import our custom modules
 from json_storage import JSONStorage
-from deepseek_api import DeepSeekAPI
-from mock_deepseek_api import MockDeepSeekAPI
+from ai_api import AIModelClient
 from session_manager import SessionManager
 from bot_handlers import BotHandlers
 
@@ -19,8 +19,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('bot.log'),
-        logging.StreamHandler()
+        logging.FileHandler('bot.log')
     ]
 )
 
@@ -32,26 +31,25 @@ api_id = config.get('default','api_id') # get the api id
 api_hash = config.get('default','api_hash') # get the api hash
 BOT_TOKEN = config.get('default','BOT_TOKEN') # get the bot token
 
-DEEPSEE_API_KEY = config.get('default','DEEPSEE_API_KEY') # get the Deepsee API key
-DEEPSEE_API_URL = config.get('default','DEEPSEE_API_URL') # get the Deepsee API URL
-model_deepseek = config.get('default','model_deepseek') # get the Deepsee model
+AI_API_KEY = config.get('default','AI_API_KEY') # get the AI service API key
+AI_API_URL = config.get('default','AI_API_URL') # get the AI service URL
+AI_MODEL = config.get('default','AI_MODEL') # get the AI model
 
 moldova_tz = pytz.timezone('Europe/Chisinau')
 
 # Initialize components
 storage = JSONStorage()
 
-# Try to initialize DeepSeek API, fall back to mock if it fails
+# Initialize AI Model Client (real API only)
 try:
-    deepseek_api = DeepSeekAPI(DEEPSEE_API_KEY, DEEPSEE_API_URL.strip('"'), model_deepseek)
-    logging.info("✅ DeepSeek API initialized successfully")
+    ai_client = AIModelClient(AI_API_KEY, AI_API_URL.strip('"'), AI_MODEL)
+    send_logs("✅ AI Model Client initialized successfully", 'info')
 except Exception as e:
-    logging.warning(f"⚠️ DeepSeek API initialization failed: {e}")
-    logging.info("🔧 Falling back to Mock API for testing")
-    deepseek_api = MockDeepSeekAPI(DEEPSEE_API_KEY, DEEPSEE_API_URL.strip('"'), model_deepseek)
+    send_logs(f"⚠️ AI Model Client initialization failed: {e}", 'error')
+    raise
 
 session_manager = SessionManager()
-bot_handlers = BotHandlers(storage, deepseek_api, session_manager)
+bot_handlers = BotHandlers(storage, ai_client, session_manager)
 
 # Create the client and the session called session_master. We start the session as the Bot (using bot_token)
 client = TelegramClient('sessions/session_master', api_id, api_hash).start(bot_token=BOT_TOKEN)
@@ -131,44 +129,22 @@ Need help? The bot will guide you through each step! 🚀
     
     await client.send_message(SENDER, help_text, parse_mode="Markdown")
 
-### First command, get the time and day
-@client.on(events.NewMessage(func=lambda e: e.text and e.text.lower().startswith('/time'))) 
-async def time(event):
-    # Get the sender of the message
-    sender = await event.get_sender()
-    SENDER = sender.id
-    text = f"📅 Current time: {datetime.datetime.now(moldova_tz).strftime('%Y-%m-%d %H:%M:%S %Z')}"
-    await client.send_message(SENDER, text, parse_mode="Markdown")
-
 ### MAIN
 if __name__ == '__main__':
-    logging.info("🤖 Second-Hand Market Bot Starting...")
-    logging.info(f"📊 JSON Storage initialized: {storage.users_file} and {storage.listings_dir}/")
+    send_logs("🤖 Second-Hand Market Bot Starting...", 'info')
+    send_logs(f"📊 JSON Storage initialized: {storage.users_file} and {storage.listings_dir}/", 'info')
     
     # Check which API is being used
-    api_type = "Mock API (Testing Mode)" if isinstance(deepseek_api, MockDeepSeekAPI) else "Real DeepSeek API"
-    logging.info(f"🤖 AI Service: {api_type} - Model: {deepseek_api.model}")
+    api_type = f"AI Service - Model: {ai_client.model}"
+    send_logs(f"🤖 AI Service: {api_type}", 'info')
     
-    logging.info(f"📋 Categories loaded: {len(session_manager.get_categories())} categories")
-    
-    print("🚀 Second-Hand Market Bot Started!")
-    print("📋 Available commands:")
-    print("   /start - Welcome message")
-    print("   /plaseaza_anunt - Create new listing")  
-    print("   /my_listings - View user listings")
-    print("   /status - Check session status")
-    print("   /cancel - Cancel current session")
-    print("   /help - Show help")
-    print("   /time - Current time")
-    print(f"\n🤖 AI Service: {api_type}")
-    print("💾 JSON Storage ready!")
-    print("🔗 Bot running... Press Ctrl+C to stop.")
+    send_logs(f"📋 Categories loaded: {len(session_manager.get_categories())} categories", 'info')
     
     try:
         client.run_until_disconnected()
     except KeyboardInterrupt:
-        logging.info("🛑 Bot stopped by user")
+        send_logs("🛑 Bot stopped by user", 'info')
         print("\n🛑 Bot stopped!")
     except Exception as e:
-        logging.error(f"Fatal error: {e}")
+        send_logs(f"Fatal error: {e}", 'error')
         print(f"\n❌ Fatal error: {e}")

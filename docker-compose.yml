@@ -1,6 +1,11 @@
 services:
   patrudesapte:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: patrudesapte:latest
+    container_name: patrudesapte
+    restart: always
     volumes:
       - ./users.json:/users.json
       - ./listings/:/listings/
